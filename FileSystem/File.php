@@ -9,14 +9,9 @@ class File extends Information
 
 	protected $type = "file";
 
-	public function __construct(string $fullpath)
+	public function __construct(FileSystem $system, string $path)
 	{
-		$path = FileSystem::path($fullpath);
-		if (!file_exists($fullpath)) {
-			return;
-		}
-
-		parent::__construct($fullpath);
+		parent::__construct($system, $path);
 
 		$this->update();
 	}
@@ -28,11 +23,17 @@ class File extends Information
 
 	private function update()
 	{
-		$explode = explode(".", $this->name());
+		$ext = explode(".", $this->name());
 
+		$this->ext = $ext[count($ext) - 1];
 		$this->mime = mime_content_type($this->fullpath());
-		$this->ext = array_pop($explode);
 		$this->content = file_get_contents($this->fullpath());
+	}
+
+
+	public function ext()
+	{
+		return $this->ext;
 	}
 
 	public function mime()
@@ -40,20 +41,17 @@ class File extends Information
 		return $this->mime;
 	}
 
-	public function ext()
-	{
-		return $this->ext;
-	}
-
 	public function get()
 	{
 		return $this->content;
 	}
 
-	public function put($text)
+	public function put(string $text) : self
 	{
 		$this->content = $text;
 		file_put_contents($this->fullpath(), $this->content);
+
+		return $this;
 	}
 
 	public function download($filename = null)

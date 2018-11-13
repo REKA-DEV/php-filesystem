@@ -3,7 +3,8 @@ namespace reka\FileSystem;
 
 abstract class Information
 {
-	private $fullpath = null;
+	private $system = null;
+	private $path = null;
 
 	private $location = null;
 	private $name = null;
@@ -15,9 +16,15 @@ abstract class Information
 
 	protected $type = null;
 
-	public function __construct(string $fullpath)
+	public function __construct(FileSystem $system, string $path)
 	{
-		$this->fullpath = $fullpath;
+		if (!file_exists($system->getRoot() . $path)) {
+			return;
+		}
+
+		$this->system = $system;
+
+		$this->path = $path;
 
 		$this->update();
 	}
@@ -26,36 +33,60 @@ abstract class Information
 
 	private function update()
 	{
-		$this->location = dirname($this->fullpath);
-		$this->name = str_replace($this->location, "", $this->fullpath);
+		$this->location = FileSystem::path(dirname($this->path));
+		$this->name = str_replace($this->location . FileSystem::ds(), "", $this->path);
 
-		$this->modified = filemtime($this->fullpath);
-		$this->owner = fileowner($this->fullpath);
-		$this->permission = fileperms($this->fullpath);
+		$this->modified = filemtime($this->fullpath());
+		$this->owner = fileowner($this->fullpath());
+		$this->permission = fileperms($this->fullpath());
 
 		$this->size = $this->calcSize();
 	}
 
-	public function mv($name)
+	public function rename(string $name) : self
 	{
-		$newpath = $this->location . __DS . FileSystem::path($name);
-		rename($this->fullpath, $newpath);
+		$path = $this->location . FileSystem::ds() . $name;
+		rename($this->system->getRoot() . $this->path, $this->system->getRoot() . $path);
 
-		$this->fullpath = $newpath;
-		$this->location = dirname($this->fullpath);
-		$this->name = str_replace($this->location, "", $this->fullpath);
+		$this->path = $path;
+		$this->update();
+
+		return $this;
 	}
 
-	public function fullpath()
+	public function move(string $location) : self
 	{
-		return $this->fullpath;
+		$path = "";
+		$location = FileSystem::path($location);
+
+		if (strpos($location, DIRECTORY_SEPARATOR) !== 0) {
+			$path = $this->location;
+		}
+
+		$path .= FileSystem::fullpath($location) . FileSystem::ds() . $this->name;
+
+		rename($this->system->getRoot() . $this->path, $this->system->getRoot() . $path);
+
+
+		$this->path = $path;
+		$this->update();
+
+		return $this;
+	}
+
+	public function system()
+	{
+		return $this->system;
+	}
+	public function path()
+	{
+		return $this->path;
 	}
 
 	public function location()
 	{
 		return $this->location;
 	}
-
 	public function name()
 	{
 		return $this->name;
@@ -65,24 +96,31 @@ abstract class Information
 	{
 		return $this->modified;
 	}
-
 	public function owner()
 	{
 		return $this->owner;
 	}
-
 	public function permission()
 	{
 		return $this->permission;
 	}
-
 	public function size()
 	{
 		return $this->size;
 	}
 
-	public function type()
+	public function fullpath()
 	{
-		return $this->type;
+		return $this->system->getRoot() . $this->path;
+	}
+
+	public function isFile()
+	{
+		return $this->type === "file";
+	}
+
+	public function isFolder()
+	{
+		return $this->type === "folder";
 	}
 }
