@@ -1,22 +1,28 @@
 <?php 
 namespace reka\FileSystem;
 
-class Folder extends Information
+class Folder extends Entity
 {
 	protected $type = "folder";
 
-	public function __construct(FileSystem $system, string $path)
+	public function __construct(string $path, bool $create = false, FileSystem $system = null)
 	{
-		parent::__construct($system, $path);
+		parent::__construct($path, $create, $system);
+
+		$this->updateInformation();
 	}
 
 	protected function calcSize()
 	{
-		return filesize($this->fullpath());
+		return 0;
+	}
+	protected function create()
+	{
+		mkdir($this->path());
 	}
 
-	public function enter()
+	private function updateInformation()
 	{
-		$this->system()->enter($this);
+
 	}
 }

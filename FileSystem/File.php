@@ -1,74 +1,76 @@
 <?php 
 namespace reka\FileSystem;
 
-class File extends Information
+class File extends Entity
 {
-	private $mime = null;
-	private $ext = null;
-	private $content = null;
+	private $extension = "";
+	private $mimeType = "text/plain";
+	private $content = "";
 
 	protected $type = "file";
 
-	public function __construct(FileSystem $system, string $path)
+	public function __construct(string $path, bool $create = false, FileSystem $system = null)
 	{
-		parent::__construct($system, $path);
+		parent::__construct($path, $create, $system);
 
-		$this->update();
+		$this->updateInformation();
 	}
 
 	protected function calcSize()
 	{
-		return filesize($this->fullpath());
+		return filesize($this->path());
 	}
-
-	private function update()
+	protected function create()
 	{
-		$ext = explode(".", $this->name());
-
-		$this->ext = $ext[count($ext) - 1];
-		$this->mime = mime_content_type($this->fullpath());
-		$this->content = file_get_contents($this->fullpath());
+		file_put_contents($this->path(), "");
 	}
 
-
-	public function ext()
+	private function updateInformation()
 	{
-		return $this->ext;
+		$explode = explode(".", $this->name());
+
+		$this->extension = $explode[count($explode) - 1];
+		$this->mimeType = mime_content_type($this->path());
+		$this->content = file_get_contents($this->path());
 	}
 
-	public function mime()
+
+	public function extension()
 	{
-		return $this->mime;
+		return $this->extension;
 	}
-
-	public function get()
+	public function mimeType()
+	{
+		return $this->mimeType;
+	}
+	public function content()
 	{
 		return $this->content;
 	}
 
-	public function put(string $text) : self
+	public function put(string $content) : self
 	{
-		$this->content = $text;
-		file_put_contents($this->fullpath(), $this->content);
+		$this->content = $content;
+		file_put_contents($this->path(), $this->content);
 
 		return $this;
 	}
 
-	public function download($filename = null)
+	public function download($downloadName = null)
 	{
-		$type = $this->mime;
+		$type = $this->mimeType();
 		$size = $this->size();
 
-		header("Content-Description: File Transfer");
-		header("Content-Type: '" . $type . "'");
-		header("Content-Disposition: attachment; filename='" . $name . "'"); 
-		header("Content-Transfer-Encoding: binary");
-		header("Connection: Keep-Alive");
+		header("Content-Description: 'File Transfer';");
+		header("Content-Type: '" . $type . "';");
+		header("Content-Disposition: 'attachment'; filename='" . $downloadName . "';"); 
+		header("Content-Transfer-Encoding: 'binary';");
+		header("Connection: 'Keep-Alive';");
 		header("Expires: 0");
-		header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
-		header("Pragma: public");
+		header("Cache-Control: 'must-revalidate', post-check=0, pre-check=0");
+		header("Pragma: 'public';");
 		header("Content-Length: " . $size);
 
-		print($this->content);
+		print($this->content());
 	}
 }
